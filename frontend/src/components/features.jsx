@@ -13,7 +13,7 @@ const features = [
 export default function FeaturesSection() {
   return (
     <>
-    <section className="py-16 bg-white text-center">
+    <section id="features" className="py-16 bg-white text-center">
     <div className="max-w-4xl mx-auto mb-8">
       <h2 className="text-3xl font-bold text-gray-900">Powerful Features for Seamless Collaboration</h2>
       <p className="text-gray-600 mt-2">Everything you need to transform how your team works together, all in one intuitive platform.</p>

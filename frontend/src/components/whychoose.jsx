@@ -5,7 +5,8 @@ import {
   Settings, 
   Shield, 
   LayoutGrid, 
-  MessageCircle // Correct import
+  MessageCircle,
+  
 } from "lucide-react";
 
 const features = [
@@ -43,7 +44,7 @@ const features = [
 
 export default function WhyChooseWhiteboard() {
   return (
-    <section className="py-16 bg-purple-50 text-center">
+    <section id="why" className="py-16 bg-purple-50 text-center">
       <div className="max-w-4xl mx-auto mb-8">
         <h2 className="text-3xl font-bold text-gray-900">Why Choose Our Whiteboard</h2>
         <p className="text-gray-600 mt-2">Experience a collaborative whiteboard platform built with your team's needs in mind.</p>
