@@ -1,13 +1,42 @@
-import './App.css'
-import LandingPage from './components/LandingPage'
-function App() {
-  
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
+import LandingPage from "./pages/LandingPage";
+import Dashboard from "./pages/Dashboard";
 
+
+
+function ProtectedRoute({ children }) {
   return (
     <>
-      <LandingPage />
+    <SignedIn>
+      {children}
+    </SignedIn>
+     <SignedOut>
+     <Navigate to="/" />  {/* Redirects to the landing page */}
+    </SignedOut>
     </>
   )
 }
 
-export default App
+function App() {
+  return (
+    
+      <Router>
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route
+            path="/dashboard"
+            element={
+                <ProtectedRoute>
+                <Dashboard />
+                </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" />} />
+        </Routes>
+      </Router>
+   
+  );
+}
+
+export default App;
