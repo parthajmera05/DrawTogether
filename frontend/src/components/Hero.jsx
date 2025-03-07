@@ -1,6 +1,6 @@
 const Hero = () => {
     return (
-        <div className="min-h-screen text-center flex flex-col items-center justify-center mt-20 px-6">
+        <div className="h-screen text-center flex flex-col items-center justify-center mt-20 px-6">
         <h2 className="text-5xl font-bold text-gray-900 max-w-2xl">
           Collaborate & Create <span className="text-purple-600">Together</span> In Real-Time
         </h2>
