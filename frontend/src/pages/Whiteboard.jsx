@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import { Stage, Layer, Line, Rect, Text, Circle } from 'react-konva';
 import { io } from 'socket.io-client';
@@ -61,12 +61,12 @@ const Whiteboard = () => {
   // Connect to Socket.IO when component mounts
   useEffect(() => {
     if (!isSignedIn) {
-      navigate('/sign-in');
+      navigate('/');
       return;
     }
     
     // Connect to socket server
-    const socket = io('/whiteboard', {
+    const socket = io('http://localhost:3000/whiteboard', {
       auth: {
         userId: user?.id,
         boardId
@@ -91,9 +91,8 @@ const Whiteboard = () => {
       updateElement(elementId, updates);
     });
     
-    socket.on('view-updated', ({ viewportState, userId }) => {
-      // Optionally show other user's viewport
-      console.log(`User ${userId} viewport updated`);
+    socket.on('element-deleted', (elementId) => {
+      setElements(prev => prev.filter(el => el.id !== elementId));
     });
     
     socket.on('board-cleared', () => {
@@ -117,7 +116,7 @@ const Whiteboard = () => {
     return () => {
       socket.disconnect();
     };
-  }, [boardId, isSignedIn, user]);
+  }, [boardId, isSignedIn, user, addElement, clearElements, navigate, setElements, updateElement]);
   
   // Handle drawing actions
   const handleMouseDown = (e) => {
