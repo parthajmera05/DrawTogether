@@ -1,42 +1,70 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
-import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
-import LandingPage from "./pages/LandingPage";
-import Dashboard from "./pages/Dashboard";
+// src/App.jsx
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { 
+  ClerkProvider, 
+  SignIn, 
+  SignUp, 
+  RedirectToSignIn, 
+  SignedIn, 
+  SignedOut 
+} from '@clerk/clerk-react';
+import { Toaster } from 'react-hot-toast';
 
+// Import your components
+import LandingPage from './pages/LandingPage';
+import Dashboard from './pages/Dashboard';
+import Whiteboard from './pages/Whiteboard';
 
+// Get Clerk publishable key
+const publishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-function ProtectedRoute({ children }) {
+const App = () => {
   return (
-    <>
-    <SignedIn>
-      {children}
-    </SignedIn>
-     <SignedOut>
-     <Navigate to="/" />  {/* Redirects to the landing page */}
-    </SignedOut>
-    </>
-  )
-}
-
-function App() {
-  return (
-    
+    <ClerkProvider publishableKey={publishableKey}>
       <Router>
+        <Toaster position="top-right" />
         <Routes>
+          {/* Public routes */}
           <Route path="/" element={<LandingPage />} />
+          <Route path="/sign-in/*" element={<SignIn routing="path" path="/sign-in" />} />
+          <Route path="/sign-up/*" element={<SignUp routing="path" path="/sign-up" />} />
+          
+          {/* Protected routes */}
           <Route
             path="/dashboard"
             element={
-                <ProtectedRoute>
-                <Dashboard />
-                </ProtectedRoute>
+              <>
+                <SignedIn>
+                  <Dashboard />
+                </SignedIn>
+                <SignedOut>
+                  <Navigate to="/" replace />
+                </SignedOut>
+              </>
             }
           />
-          <Route path="*" element={<Navigate to="/" />} />
+          
+          <Route
+            path="/whiteboard/:boardId"
+            element={
+              <>
+                <SignedIn>
+                  <Whiteboard />
+                </SignedIn>
+                <SignedOut>
+                  <Navigate to="/" replace />
+                </SignedOut>
+              </>
+            }
+          />
+          
+          {/* Fallback route */}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
-   
+    </ClerkProvider>
   );
-}
+};
 
 export default App;
