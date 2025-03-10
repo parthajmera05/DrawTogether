@@ -24,9 +24,6 @@ function setupWhiteboardServer(server) {
     
     const { userId, boardId } = socket.handshake.auth;
     
-    
-    
-    
     // Join specific board room
     socket.on('join-board', (boardId) => {
       console.log("Joining board:", boardId);
