@@ -131,14 +131,12 @@ const Whiteboard = () => {
       transports: ['websocket'],
       upgrade: false
     });
-    socket.on('disconnect', (reason) => {
-      console.log('Disconnected from server:', reason);
-    });
+
     socketRef.current = socket;
     console.log("Socket connected:", socket.connected);
     // Join the board room
     console.log('Joining board room:', boardId);
-    socket.emit('join', boardId);
+    socket.emit('join-board', boardId);
    
     // Socket event listeners
     socket.on('board-state', (data) => {

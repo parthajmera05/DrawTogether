@@ -4,7 +4,12 @@ import {
   SignInButton,
   UserButton,
 } from "@clerk/clerk-react";
+import {v4 as uuidv4} from 'uuid';
 const Hero = () => {
+    const handleClick = () => {
+      const whiteboardId = uuidv4();
+      window.location.href = `/whiteboard/${whiteboardId}`;
+    }
     return (
         <section id="hero" className="h-[80vh] text-center flex flex-col items-center justify-center px-6  ">
         <div className="mt-16">
@@ -22,7 +27,7 @@ const Hero = () => {
           </SignInButton>
           </SignedOut>
           <SignedIn>
-            <button className=" bg-purple-500 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium" onClick={() => window.location.href = "/dashboard"}>Go To DashBoard</button>
+            <button className=" bg-purple-500 hover:bg-purple-700 text-white px-6 py-3 rounded-lg font-medium" onClick={handleClick}>Go To WhiteBoard</button>
           </SignedIn>
           <button className="border border-purple-600 text-purple-600 px-6 py-3 rounded-lg font-medium" onClick={() => window.open("https://github.com/parthajmera05/DrawTogether", "_blank")}>Learn More</button>
           
