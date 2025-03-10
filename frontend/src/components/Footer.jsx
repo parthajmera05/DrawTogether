@@ -9,13 +9,13 @@ export default function Footer() {
 
         {/* Social Links */}
         <div className="flex space-x-4 mt-2 md:mt-0">
-          <a href="https://github.com/parthajmera" target="_blank" rel="noopener noreferrer" className="hover:text-purple-600 transition flex items-center">
+          <a href="https://github.com/parthajmera05" target="_blank" rel="noopener noreferrer" className="hover:text-purple-600 transition flex items-center">
             <Github size={20} className="mr-1" /> 
           </a>
-          <a href="https://linkedin.com/in/parthajmera" target="_blank" rel="noopener noreferrer" className="hover:text-purple-600 transition flex items-center">
+          <a href="https://www.linkedin.com/in/parth-ajmera-811044213/" target="_blank" rel="noopener noreferrer" className="hover:text-purple-600 transition flex items-center">
             <Linkedin size={20} className="mr-1" /> 
           </a>
-          <a href="https://twitter.com/parthajmera" target="_blank" rel="noopener noreferrer" className="hover:text-purple-600 transition flex items-center">
+          <a href="https://x.com/parth_ajmera5" target="_blank" rel="noopener noreferrer" className="hover:text-purple-600 transition flex items-center">
             <Twitter size={20} className="mr-1" /> 
           </a>
         </div>

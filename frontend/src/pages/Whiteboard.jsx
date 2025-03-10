@@ -63,7 +63,7 @@ const Whiteboard = () => {
   // Fetch board data on component mount
   const fetchBoardData = async () => {
     try {
-      const response = await fetch(`http://localhost:3000/api/whiteboards/${boardId}`, {
+      const response = await fetch(import.meta.env.VITE_BACKEND_URL + `/api/whiteboards/${boardId}`, {
         method: 'GET',
       });
       const data = await response.json();
@@ -86,7 +86,7 @@ const Whiteboard = () => {
   // Save board data periodically
   const saveBoardData = async (elements) => {
     try {
-      const response = await fetch(`http://localhost:3000/api/save-board`, {
+      const response = await fetch(import.meta.env.VITE_BACKEND_URL + '/api/save-board', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -123,7 +123,7 @@ const Whiteboard = () => {
     }
     
     // Connect to socket server
-    const socket = io('http://localhost:3000', {
+    const socket = io(import.meta.env.VITE_BACKEND_URL, {
       auth: {
         userId: user?.id,
         boardId: boardId,
