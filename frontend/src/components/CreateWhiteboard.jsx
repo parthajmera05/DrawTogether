@@ -1,25 +1,41 @@
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { v4 as uuidv4 } from 'uuid';
+import {v4 as uuidv4} from 'uuid';
 import { PlusIcon } from 'lucide-react';
+import axios from 'axios';
+import {useUser} from '@clerk/clerk-react';
 
 const CreateWhiteboard = () => {
   const [isCreating, setIsCreating] = useState(false);
+  const { user } = useUser();
   const navigate = useNavigate();
 
-  const createNewWhiteboard = () => {
+  const createNewWhiteboard = async () => {
     setIsCreating(true);
     
-    // Generate a unique ID for the whiteboard
     const boardId = uuidv4();
-    
-    // In a production app, you might want to save this to your database
-    // For now, we'll just navigate to the new board
-    setTimeout(() => {
-      navigate(`/whiteboard/${boardId}`);
-    }, 500);
+    try {
+      const response = await axios.post("http://localhost:3000/api/whiteboards", {
+        boardId: boardId,
+        name:user.fullName ,
+        elements: []
+      });
+
+      if (response.status === 201) {
+        navigate(`/whiteboard/${boardId}`);
+      } else {
+        console.error("Failed to create whiteboard");
+      }
+    } catch (error) {
+      console.error("Error creating whiteboard:", error);
+    } finally {
+      setIsCreating(false);
+    }
   };
+    
+    
+  
 
   return (
     <button

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
-import { format } from 'date-fns';
+
 import { 
   ClipboardIcon, 
   UsersIcon,
@@ -17,10 +17,11 @@ const Dashboard = () => {
 
   useEffect(() => {
     setTimeout(() => {
-      fetch('/api/boards', {
+      fetch('http://localhost:3000/api/whiteboards', {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
+          'user' : user.fullName,
         },
       }).then((response) => {
       response.json().then((data) => {
@@ -40,7 +41,7 @@ const Dashboard = () => {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {/* Create new whiteboard card */}
-        <CreateWhiteboard />
+        <CreateWhiteboard  />
 
         {/* Loading states */}
         {isLoading && 
@@ -56,8 +57,8 @@ const Dashboard = () => {
         {/* Whiteboard cards */}
         {!isLoading && boards.map(board => (
           <Link 
-            key={board.id} 
-            to={`/whiteboard/${board.id}`}
+            key={board.boardId} 
+            to={`/whiteboard/${board.boardId}`}
             className="bg-white border border-purple-300 rounded-lg p-4 hover:shadow-lg transition-shadow duration-200"
           >
             <div className="flex items-start">
@@ -68,14 +69,7 @@ const Dashboard = () => {
                 <h3 className="font-medium text-purple-900 truncate">{board.name}</h3>
                 
                 <div className="flex items-center mt-3 text-xs text-gray-500">
-                  <div className="flex items-center mr-4">
-                    <CalendarIcon size={14} className="mr-1 text-purple-500" />
-                    {format(board.updatedAt, 'MMM d, yyyy')}
-                  </div>
-                  <div className="flex items-center">
-                    <UsersIcon size={14} className="mr-1 text-purple-500" />
-                    {board.collaborators} {board.collaborators === 1 ? 'user' : 'users'}
-                  </div>
+                  
                 </div>
               </div>
               

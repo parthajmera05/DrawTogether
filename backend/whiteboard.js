@@ -17,28 +17,19 @@ function setupWhiteboardServer(server) {
   const activeBoards = new Map();
 
   // Whiteboard namespaces
- 
 
   io.on('connection', async (socket) => {
     console.log('User connected to whiteboard:', socket.id);
     
     
     const { userId, boardId } = socket.handshake.auth;
-    let user = null;
-    console.log(socket.handshake.auth);
     
-    if (userId) {
-      try {
-        user = await clerkClient.users.getUser(userId);
-        
-      } catch (error) {
-        console.error('Error fetching user from Clerk:', error);
-      }
-    }
+    
+    
     
     // Join specific board room
-    socket.on('join', (boardId) => {
-      console.log(`📌 Received join-board event. User ${socket.id} joining board: ${boardId}`);
+    socket.on('join-board', (boardId) => {
+      console.log("Joining board:", boardId);
       socket.join(boardId);
       console.log(`User ${socket.id} joined board: ${boardId}`);
 
@@ -62,14 +53,13 @@ function setupWhiteboardServer(server) {
       // Notify others about new user
       socket.to(boardId).emit('user-joined', {
         id: socket.id,
-        name: user ? user.firstName : 'Anonymous'
       });
       
       // Send list of active users
       const activeUsers = Array.from(board.users).map(id => ({
         id,
         isCurrentUser: id === socket.id,
-        name: id === socket.id ? (user ? user.firstName : 'You') : 'Collaborator'
+        
       }));
       
       io.to(boardId).emit('active-users', activeUsers);
