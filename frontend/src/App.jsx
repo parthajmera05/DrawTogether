@@ -13,7 +13,7 @@ import { Toaster } from 'react-hot-toast';
 
 // Import your components
 import LandingPage from './pages/LandingPage';
-import Dashboard from './pages/Dashboard';
+
 import Whiteboard from './pages/Whiteboard';
 
 // Get Clerk publishable key
@@ -31,19 +31,6 @@ const App = () => {
           <Route path="/sign-up/*" element={<SignUp routing="path" path="/sign-up" />} />
           
           {/* Protected routes */}
-          <Route
-            path="/dashboard"
-            element={
-              <>
-                <SignedIn>
-                  <Dashboard />
-                </SignedIn>
-                <SignedOut>
-                  <Navigate to="/" replace />
-                </SignedOut>
-              </>
-            }
-          />
           
           <Route
             path="/whiteboard/:boardId"
