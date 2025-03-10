@@ -66,18 +66,22 @@ const Whiteboard = () => {
     }
     
     // Connect to socket server
-    const socket = io('http://localhost:3000/whiteboard', {
+    const socket = io('http://localhost:3000', {
       auth: {
         userId: user?.id,
-        boardId
+        boardId: boardId
       }
     });
-    
+    socket.on("connect_error", (err) => {
+      console.error("Connection error:", err.message);
+    });
     socketRef.current = socket;
+    console.log(socket.connected);
     
     // Join the board room
-    socket.emit('join-board', boardId);
-    
+    console.log('Joining board room:', boardId);
+    socket.emit('join', boardId);
+   
     // Socket event listeners
     socket.on('board-state', (data) => {
       setElements(data.elements || []);
@@ -116,7 +120,7 @@ const Whiteboard = () => {
     return () => {
       socket.disconnect();
     };
-  }, [boardId, isSignedIn, user, addElement, clearElements, navigate, setElements, updateElement]);
+  }, [boardId, isSignedIn, user]);
   
   // Handle drawing actions
   const handleMouseDown = (e) => {

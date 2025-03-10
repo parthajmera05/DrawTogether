@@ -6,38 +6,42 @@ function setupWhiteboardServer(server) {
   // Initialize Socket.IO server
   const io = new Server(server, {
     cors: {
-      origin: process.env.FRONTEND_URL,
+      origin: "*",
       methods: ['GET', 'POST'],
       credentials: true
     }
   });
 
+
  
   const activeBoards = new Map();
 
   // Whiteboard namespaces
-  const whiteboardNamespace = io.of('/whiteboard');
+ 
 
-  whiteboardNamespace.on('connection', async (socket) => {
+  io.on('connection', async (socket) => {
     console.log('User connected to whiteboard:', socket.id);
     
-    // Get user info from Clerk
+    
     const { userId, boardId } = socket.handshake.auth;
     let user = null;
+    console.log(socket.handshake.auth);
     
     if (userId) {
       try {
         user = await clerkClient.users.getUser(userId);
+        
       } catch (error) {
         console.error('Error fetching user from Clerk:', error);
       }
     }
     
     // Join specific board room
-    socket.on('join-board', (boardId) => {
+    socket.on('join', (boardId) => {
+      console.log(`📌 Received join-board event. User ${socket.id} joining board: ${boardId}`);
       socket.join(boardId);
       console.log(`User ${socket.id} joined board: ${boardId}`);
-      
+
       // Initialize board if it doesn't exist
       if (!activeBoards.has(boardId)) {
         activeBoards.set(boardId, {
@@ -68,7 +72,7 @@ function setupWhiteboardServer(server) {
         name: id === socket.id ? (user ? user.firstName : 'You') : 'Collaborator'
       }));
       
-      whiteboardNamespace.to(boardId).emit('active-users', activeUsers);
+      io.to(boardId).emit('active-users', activeUsers);
     });
     
     // Handle drawing elements
@@ -123,7 +127,7 @@ function setupWhiteboardServer(server) {
         board.elements = [];
         
         // Broadcast to all in the room including sender
-        whiteboardNamespace.to(boardId).emit('board-cleared');
+        io.to(boardId).emit('board-cleared');
       }
     });
     
@@ -145,7 +149,7 @@ function setupWhiteboardServer(server) {
             name: 'Collaborator'
           }));
           
-          whiteboardNamespace.to(boardId).emit('active-users', activeUsers);
+          io.to(boardId).emit('active-users', activeUsers);
           
           // Clean up empty boards
           if (board.users.size === 0) {
