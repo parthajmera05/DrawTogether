@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useParams, useNavigate, Navigate } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useUser } from '@clerk/clerk-react';
 import { Stage, Layer, Line, Rect, Text, Circle } from 'react-konva';
 import { io } from 'socket.io-client';
@@ -8,11 +8,13 @@ import { toast } from 'react-hot-toast';
 import { PencilIcon, EraserIcon, SquareIcon, CircleIcon, TypeIcon, HandIcon, TrashIcon, UsersIcon, ZoomInIcon, ZoomOutIcon, ShareIcon, SaveIcon } from 'lucide-react';
 
 // State management
-import {create} from 'zustand';
+import { create } from 'zustand';
 
 const useStore = create((set) => ({
   elements: [],
-  setElements: (elements) => set({ elements }),
+  setElements: (elements) =>{
+    console.log("Setting elements in Zustand store:", elements);
+     set({ elements })},
   addElement: (element) => set((state) => ({ 
     elements: [...state.elements, element] 
   })),
@@ -57,7 +59,62 @@ const Whiteboard = () => {
   
   // Current element being drawn
   const [currentElement, setCurrentElement] = useState(null);
-  
+
+  // Fetch board data on component mount
+  const fetchBoardData = async () => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/whiteboards/${boardId}`, {
+        method: 'GET',
+      });
+      const data = await response.json();
+      
+      if (data.success && Array.isArray(data.elements)) {
+        setElements(data.elements);
+      } else {
+        setElements([]); // Ensure it's always an array
+      }
+    } catch (error) {
+      console.error("Error fetching board data:", error);
+      setElements([]); // Fallback to empty array
+    }
+  };
+
+  useEffect(() => {
+    fetchBoardData();
+  }, [boardId]);
+
+  // Save board data periodically
+  const saveBoardData = async (elements) => {
+    try {
+      const response = await fetch(`http://localhost:3000/api/save-board`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          boardId,
+          name: user.fullName,
+          elements,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        console.log("Board auto-saved");
+      } else {
+        console.error("Auto-save failed.");
+      }
+    } catch (error) {
+      console.error("Error auto-saving board:", error);
+    }
+  };
+ 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      saveBoardData(elements);
+    }, 5000);
+
+    return () => clearInterval(interval); // Cleanup interval on unmount
+  },[elements]);
+
   // Connect to Socket.IO when component mounts
   useEffect(() => {
     if (!isSignedIn) {
@@ -66,15 +123,19 @@ const Whiteboard = () => {
     }
     
     // Connect to socket server
-    const socket = io('http://localhost:3000/whiteboard', {
+    const socket = io('http://localhost:3000', {
       auth: {
         userId: user?.id,
-        boardId
-      }
+        boardId: boardId,
+      },
+      transports: ['websocket'],
+      upgrade: false
     });
-    
+    socket.on('disconnect', (reason) => {
+      console.log('Disconnected from server:', reason);
+    });
     socketRef.current = socket;
-    
+    console.log("Socket connected:", socket.connected);
     // Join the board room
     socket.emit('join-board', boardId);
     
@@ -92,7 +153,7 @@ const Whiteboard = () => {
     });
     
     socket.on('element-deleted', (elementId) => {
-      setElements(prev => prev.filter(el => el.id !== elementId));
+      setElements((prev) => prev.filter((el) => el.id !== elementId));
     });
     
     socket.on('board-cleared', () => {
@@ -109,7 +170,7 @@ const Whiteboard = () => {
     });
     
     socket.on('user-left', (userId) => {
-      setActiveUsers(prev => prev.filter(user => user.id !== userId));
+      setActiveUsers((prev) => prev.filter((user) => user.id !== userId));
     });
     
     // Clean up on unmount
@@ -117,7 +178,7 @@ const Whiteboard = () => {
       socket.disconnect();
     };
   }, [boardId, isSignedIn, user, addElement, clearElements, navigate, setElements, updateElement]);
-  
+
   // Handle drawing actions
   const handleMouseDown = (e) => {
     if (tool === 'hand') {
@@ -173,12 +234,13 @@ const Whiteboard = () => {
     // Add the finished element
     if (currentElement) {
       // Add to local state
+      console.log("Finalizing element:", currentElement);
       addElement(currentElement);
       
       // Send to server
       socketRef.current?.emit('draw-element', {
         boardId,
-        element: currentElement
+        element: currentElement,
       });
       
       setCurrentElement(null);
@@ -221,7 +283,7 @@ const Whiteboard = () => {
     // Broadcast viewport change
     socketRef.current?.emit('view-update', {
       boardId,
-      viewportState: newViewport
+      viewportState: newViewport,
     });
   };
   
@@ -244,7 +306,7 @@ const Whiteboard = () => {
     // Broadcast viewport change
     socketRef.current?.emit('view-update', {
       boardId,
-      viewportState: viewport
+      viewportState: viewport,
     });
   };
   
@@ -272,7 +334,12 @@ const Whiteboard = () => {
     setCopyLinkText('Copied!');
     setTimeout(() => setCopyLinkText('Copy Link'), 2000);
   };
-  
+
+  const saveBoard = () => {
+    saveBoardData(elements);
+    toast.success('Board saved successfully');
+  };
+
   return (
     <div className="h-screen w-screen flex flex-col overflow-hidden">
       {/* Toolbar */}
@@ -387,6 +454,7 @@ const Whiteboard = () => {
           {/* Save button */}
           <button 
             className="flex items-center px-3 py-1 bg-gray-100 rounded-md hover:bg-gray-200 text-sm"
+            onClick={saveBoard}
           >
             <SaveIcon size={16} className="mr-1" />
             Save
@@ -422,159 +490,160 @@ const Whiteboard = () => {
             />
             
             {/* Grid lines */}
-                {Array.from({ length: 100 }).map((_, i) => (
-                    <Line
-                    key={`grid-h-${i}`}
-                    points={[-10000, i * 100 - 5000, 10000, i * 100 - 5000]}
-                    stroke="#f0f0f0"
-                    strokeWidth={1}
-                    />
-                ))}
-                {Array.from({ length: 100 }).map((_, i) => (
+            {Array.from({ length: 100 }).map((_, i) => (
+              <Line
+                key={`grid-h-${i}`}
+                points={[-10000, i * 100 - 5000, 10000, i * 100 - 5000]}
+                stroke="#f0f0f0"
+                strokeWidth={1}
+              />
+            ))}
+            {Array.from({ length: 100 }).map((_, i) => (
+              <Line
+                key={`grid-v-${i}`}
+                points={[i * 100 - 5000, -10000, i * 100 - 5000, 10000]}
+                stroke="#f0f0f0"
+                strokeWidth={1}
+              />
+            ))}
+            
+            {/* Draw all saved elements */}
+            {elements.map((element) => {
+              console.log("Rendering element:", element);
+              if (element.tool === 'pencil' || element.tool === 'eraser') {
+                return (
                   <Line
-                    key={`grid-v-${i}`}
-                    points={[i * 100 - 5000, -10000, i * 100 - 5000, 10000]}
-                    stroke="#f0f0f0"
-                    strokeWidth={1}
+                    key={element.id}
+                    points={element.points}
+                    stroke={element.stroke}
+                    strokeWidth={element.strokeWidth}
+                    tension={0.5}
+                    lineCap="round"
+                    lineJoin="round"
+                    globalCompositeOperation={
+                      element.tool === 'eraser' ? 'destination-out' : 'source-over'
+                    }
                   />
-                ))}
-                
-                {/* Draw all saved elements */}
-                {elements.map((element) => {
-                  if (element.tool === 'pencil' || element.tool === 'eraser') {
-                    return (
-                      <Line
-                        key={element.id}
-                        points={element.points}
-                        stroke={element.stroke}
-                        strokeWidth={element.strokeWidth}
-                        tension={0.5}
-                        lineCap="round"
-                        lineJoin="round"
-                        globalCompositeOperation={
-                          element.tool === 'eraser' ? 'destination-out' : 'source-over'
-                        }
-                      />
-                    );
-                  } else if (element.tool === 'rectangle') {
-                    return (
-                      <Rect
-                        key={element.id}
-                        x={element.x}
-                        y={element.y}
-                        width={element.width}
-                        height={element.height}
-                        stroke={element.stroke}
-                        strokeWidth={element.strokeWidth}
-                        fill={element.fill}
-                      />
-                    );
-                  } else if (element.tool === 'circle') {
-                    return (
-                      <Circle
-                        key={element.id}
-                        x={element.x + element.width / 2}
-                        y={element.y + element.height / 2}
-                        radius={Math.abs(element.width + element.height) / 4}
-                        stroke={element.stroke}
-                        strokeWidth={element.strokeWidth}
-                        fill={element.fill}
-                      />
-                    );
-                  } else if (element.tool === 'text') {
-                    return (
-                      <Text
-                        key={element.id}
-                        x={element.x}
-                        y={element.y}
-                        text={element.text}
-                        fontSize={element.fontSize}
-                        fontFamily="Arial"
-                        fill={element.stroke}
-                      />
-                    );
+                );
+              } else if (element.tool === 'rectangle') {
+                return (
+                  <Rect
+                    key={element.id}
+                    x={element.x}
+                    y={element.y}
+                    width={element.width}
+                    height={element.height}
+                    stroke={element.stroke}
+                    strokeWidth={element.strokeWidth}
+                    fill={element.fill}
+                  />
+                );
+              } else if (element.tool === 'circle') {
+                return (
+                  <Circle
+                    key={element.id}
+                    x={element.x + element.width / 2}
+                    y={element.y + element.height / 2}
+                    radius={Math.abs(element.width + element.height) / 4}
+                    stroke={element.stroke}
+                    strokeWidth={element.strokeWidth}
+                    fill={element.fill}
+                  />
+                );
+              } else if (element.tool === 'text') {
+                return (
+                  <Text
+                    key={element.id}
+                    x={element.x}
+                    y={element.y}
+                    text={element.text}
+                    fontSize={element.fontSize}
+                    fontFamily="Arial"
+                    fill={element.stroke}
+                  />
+                );
+              }
+              return null;
+            })}
+            
+            {/* Draw current element while drawing */}
+            {isDrawing && currentElement && (
+              currentElement.tool === 'pencil' || currentElement.tool === 'eraser' ? (
+                <Line
+                  points={currentElement.points}
+                  stroke={currentElement.stroke}
+                  strokeWidth={currentElement.strokeWidth}
+                  tension={0.5}
+                  lineCap="round"
+                  lineJoin="round"
+                  globalCompositeOperation={
+                    currentElement.tool === 'eraser' ? 'destination-out' : 'source-over'
                   }
-                  return null;
-                })}
-                
-                {/* Draw current element while drawing */}
-                {isDrawing && currentElement && (
-                  currentElement.tool === 'pencil' || currentElement.tool === 'eraser' ? (
-                    <Line
-                      points={currentElement.points}
-                      stroke={currentElement.stroke}
-                      strokeWidth={currentElement.strokeWidth}
-                      tension={0.5}
-                      lineCap="round"
-                      lineJoin="round"
-                      globalCompositeOperation={
-                        currentElement.tool === 'eraser' ? 'destination-out' : 'source-over'
-                      }
-                    />
-                  ) : currentElement.tool === 'rectangle' ? (
-                    <Rect
-                      x={currentElement.x}
-                      y={currentElement.y}
-                      width={currentElement.width}
-                      height={currentElement.height}
-                      stroke={currentElement.stroke}
-                      strokeWidth={currentElement.strokeWidth}
-                      fill={currentElement.fill}
-                    />
-                  ) : currentElement.tool === 'circle' ? (
-                    <Circle
-                      x={currentElement.x + currentElement.width / 2}
-                      y={currentElement.y + currentElement.height / 2}
-                      radius={Math.abs(currentElement.width + currentElement.height) / 4}
-                      stroke={currentElement.stroke}
-                      strokeWidth={currentElement.strokeWidth}
-                      fill={currentElement.fill}
-                    />
-                  ) : null
-                )}
-              </Layer>
-            </Stage>
-          </div>
-          
-          {/* Share dialog */}
-          {showShareDialog && (
-            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-                <h3 className="text-lg font-medium mb-4">Share this whiteboard</h3>
-                
-                <div className="mb-6">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Board link
-                  </label>
-                  <div className="flex">
-                    <input 
-                      type="text" 
-                      readOnly 
-                      value={`${window.location.origin}/whiteboard/${boardId}`}
-                      className="flex-1 border rounded-l-md px-3 py-2 text-sm bg-gray-50"
-                    />
-                    <button
-                      onClick={copyBoardLink}
-                      className="bg-blue-600 text-white px-3 py-2 rounded-r-md text-sm"
-                    >
-                      {copyLinkText}
-                    </button>
-                  </div>
-                </div>
-                
-                <div className="border-t pt-4 flex justify-end">
-                  <button
-                    onClick={() => setShowShareDialog(false)}
-                    className="bg-gray-100 px-4 py-2 rounded-md text-sm hover:bg-gray-200"
-                  >
-                    Close
-                  </button>
-                </div>
+                />
+              ) : currentElement.tool === 'rectangle' ? (
+                <Rect
+                  x={currentElement.x}
+                  y={currentElement.y}
+                  width={currentElement.width}
+                  height={currentElement.height}
+                  stroke={currentElement.stroke}
+                  strokeWidth={currentElement.strokeWidth}
+                  fill={currentElement.fill}
+                />
+              ) : currentElement.tool === 'circle' ? (
+                <Circle
+                  x={currentElement.x + currentElement.width / 2}
+                  y={currentElement.y + currentElement.height / 2}
+                  radius={Math.abs(currentElement.width + currentElement.height) / 4}
+                  stroke={currentElement.stroke}
+                  strokeWidth={currentElement.strokeWidth}
+                  fill={currentElement.fill}
+                />
+              ) : null
+            )}
+          </Layer>
+        </Stage>
+      </div>
+      
+      {/* Share dialog */}
+      {showShareDialog && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
+            <h3 className="text-lg font-medium mb-4">Share this whiteboard</h3>
+            
+            <div className="mb-6">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Board link
+              </label>
+              <div className="flex">
+                <input 
+                  type="text" 
+                  readOnly 
+                  value={`${window.location.origin}/whiteboard/${boardId}`}
+                  className="flex-1 border rounded-l-md px-3 py-2 text-sm bg-gray-50"
+                />
+                <button
+                  onClick={copyBoardLink}
+                  className="bg-blue-600 text-white px-3 py-2 rounded-r-md text-sm"
+                >
+                  {copyLinkText}
+                </button>
               </div>
             </div>
-          )}
+            
+            <div className="border-t pt-4 flex justify-end">
+              <button
+                onClick={() => setShowShareDialog(false)}
+                className="bg-gray-100 px-4 py-2 rounded-md text-sm hover:bg-gray-200"
+              >
+                Close
+              </button>
+            </div>
+          </div>
         </div>
-      );
-    };
-    
-    export default Whiteboard;
+      )}
+    </div>
+  );
+};
+
+export default Whiteboard;
